@@ -1,2 +1,4 @@
 *.sqlite3
+*journal
+*.dump
 .*.swp
