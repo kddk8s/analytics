@@ -6,9 +6,9 @@ zerodir="${zero%/*}"
 zerofile="${zero#"$zerodir"/}"
 zerobase="${zerofile%.*}"
 # Limit to two files for initial testing
-limit=2
+limit=''
 : "${L_DB:=${zerobase}.sqlite3}"
-export DMC_RECORDS=10000
+#export DMC_RECORDS=10000
 Main(){
 	local bucketdir="${BUCKET_DIR:-${zerodir}/../../buckets}"
 	local files=() file lfiles=()
@@ -27,7 +27,7 @@ Main(){
 
 GetFiles() {
 	find "$1"/dl.ncsbe.gov/data/Snapshots -name \*.zip |
-		sort -r
+		sort
 }
 
 Process() {
