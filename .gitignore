@@ -3,3 +3,5 @@
 *journal
 *.dump
 .*.swp
+*.tabs
+.flag.*
