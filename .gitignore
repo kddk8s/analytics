@@ -4,3 +4,4 @@
 *.dump
 .*.swp
 *.tabs
+.flag.*
