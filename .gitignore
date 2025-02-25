@@ -3,3 +3,4 @@
 *journal
 *.dump
 .*.swp
+*.tabs
