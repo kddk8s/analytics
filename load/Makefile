@@ -6,7 +6,7 @@ DIR_NCV ?= $(DIR_BUCKET)/data
 INPUT_NCV = $(wildcard $(DIR_NCV)/*Statewide.zip)
 TARGET_NCV = $(addprefix ncv/, $(addsuffix .sqlite3, $(basename $(notdir $(INPUT_NCV)))))
 
-all: .flag.snapshots
+all: .flag.ncv .flag.snapshots
 	echo $(DIR_BUCKET)
 	echo $(DIR_SNAPSHOTS)
 
@@ -17,11 +17,11 @@ all: .flag.snapshots
 	(echo New: $?: echo All: $^) > $@.tmp; mv -v $@.tmp $@
 
 snapshots/%.sqlite3: $(DIR_SNAPSHOTS)/%.zip
-	mkdir -p $@D
+	mkdir -p $(@D)
 	loadit $@.tmp $< && mv $@.tmp $@
 
 ncv/%.sqlite3: $(DIR_NCV)/%.zip
-	mkdir -p $@D
+	mkdir -p $(@D)
 	loadit $@.tmp $< && mv $@.tmp $@
 
 check:
