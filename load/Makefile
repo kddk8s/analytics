@@ -24,6 +24,9 @@ ncv/%.sqlite3: $(DIR_NCV)/%.zip
 	mkdir -p $(@D)
 	loadit $@.tmp $< && mv $@.tmp $@
 
+ncv/ncvpref.sqlite3	: ncv/ncvhist.sqlite3
+	preferences "$@" "$<"
+
 check:
 	echo $(INPUT_SNAPSHOTS)
 	echo $(TARGET_SNAPSHOTS)
