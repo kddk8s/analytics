@@ -11,9 +11,72 @@ Main(){
 	if [ -z "${DEBUG:-}" ]; then
 		sql=.quit
 	fi
-	sqlite3 --init <(Setup) "$db" ${sql:+$sql}
+	rm -vf "$db"
+	sqlite3 --init <(Setup "${ncvoter}" "${ncvhis}") "$db" ${sql:+$sql}
 }
 Setup() {
-	:
+	cat << EEOOTT
+.timer on
+.echo on
+ATTACH DATABASE '$1' as ncvoter;
+ATTACH DATABASE '$2' as ncvhis;
+CREATE TABLE IF NOT EXISTS n_precincts (
+  precinct_id INTEGER PRIMARY KEY
+, county_id
+, county_desc
+, res_street_address
+, res_city_desc
+, state_cd
+, zip_code
+, precinct_abbrv
+, precinct_desc
+, municipality_abbrv
+, municipality_desc
+, vtd_abbrv
+, vtd_desc
+, zip_code_5 GENERATED ALWAYS AS (substr(zip_code, 1, 5)) STORED
+);
+CREATE UNIQUE INDEX n_precincts_u ON n_precincts (
+  county_id
+, county_desc
+, res_street_address
+, res_city_desc
+, state_cd
+, zip_code
+, precinct_abbrv
+, precinct_desc
+, municipality_abbrv
+, municipality_desc
+, vtd_abbrv
+, vtd_desc
+);
+INSERT OR IGNORE INTO n_precincts (
+  county_id
+, county_desc
+, res_street_address
+, res_city_desc
+, state_cd
+, zip_code
+, precinct_abbrv
+, precinct_desc
+, municipality_abbrv
+, municipality_desc
+, vtd_abbrv
+, vtd_desc
+) SELECT DISTINCT
+  county_id
+, county_desc
+, res_street_address
+, res_city_desc
+, state_cd
+, zip_code
+, precinct_abbrv
+, precinct_desc
+, municipality_abbrv
+, municipality_desc
+, vtd_abbrv
+, vtd_desc
+FROM l_ncvoterstatewide;
+EEOOTT
 }
 Main "$@"

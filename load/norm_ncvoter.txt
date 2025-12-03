@@ -23,7 +23,9 @@ public voter registration data to prevent unintentional release of confidential 
 name                    data type          description
 ------------------------------------------------------------------------------------
 county_id               int                County identification number 
+	precincts
 county_desc             varchar(15)        County name
+	precincts
 voter_reg_num           char(12)           Voter registration number (unique to county)
 ncid                    char(12)           North Carolina identification (NCID) number
 last_name               varchar(25)        Voter last name 
@@ -35,9 +37,13 @@ voter_status_desc       varchar(25)        Registration status description
 reason_cd               varchar(2)         Registration status reason code
 voter_status_reason_desc varchar(60)       Registration status reason description
 res_street_address      varvarchar(65)     Residential street address
+	precincts
 res_city_desc           varchar(60)        Residential city name
+	precincts
 state_cd                varchar(2)         Residential address state code 
+	precincts
 zip_code                char(9)            Residential address zip code
+	precincts
 mail_addr1              varchar(40)        Mailing address line 1
 mail_addr2              varchar(40)        Mailing address line 2
 mail_addr3              varchar(40)        Mailing address line 3
@@ -57,9 +63,13 @@ age_at_year_end         char(3)            Age at end of the year (was: birth_ag
 birth_state             varchar(2)         Birth state
 drivers_lic             char(1)            Drivers license (Y/N)
 precinct_abbrv          varchar(6)         Precinct abbreviation
+	precincts
 precinct_desc           varchar(60)        Precinct name
+	precincts
 municipality_abbrv      varchar(6)         Municipality jurisdiction abbreviation
+	precincts
 municipality_desc       varchar(60)        Municipality jurisdiction name
+	precincts
 ward_abbrv              varchar(6)         Ward jurisdiction abbreviation
 ward_desc               varchar(60)        Ward jurisdiction name
 cong_dist_abbrv         varchar(6)         Congressional district abbreviation
@@ -88,7 +98,9 @@ munic_dist_desc         varchar(60)        Municipal district name
 dist_1_abbrv            varchar(6)         Presecutorial district abbreviation
 dist_1_desc             varchar(60)        Presecutorial district name
 vtd_abbrv               varchar(6)         Voter tabulation district abbreviation
+	precincts
 vtd_desc                varchar(60)        Voter tabulation district name
+	precincts
 ------------------------------------------------------------------------------------
 
 
