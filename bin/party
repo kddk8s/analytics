@@ -3,12 +3,17 @@ set -e -u -x -o pipefail
 Main() {
 rm -vf "$1"
 cat > party.sql <<EEOOTT
+.echo on
+.timer on
 ATTACH DATABASE '$2' as ncvoter;
 ATTACH DATABASE '$3' as ncvhis;
 $(VPartyFilter UNA DEM REP LIB GRE)
+$(HPartyFilter  DEM REP UNA LIB NLB GRE CST '' WTP JFA)
+CREATE TABLE hr_party AS SELECT * FROM h_party NATURAL FULL OUTER JOIN r_party;
+CREATE INDEX hr_party_ncid on hr_party (ncid);
 .schema
 EEOOTT
-sqlite3 "$1" -init party.sql
+sqlite3 "$1" -init party.sql ".quit"
 }
 VPartyFilter() {
 	local party lparty
@@ -18,6 +23,31 @@ VPartyFilter() {
 		echo ", party_cd='$party' as r_$lparty"
 	done
 	echo "FROM l_ncvoterstatewide;"
-	echo ".schema"
+	echo "CREATE INDEX r_party_ncid on r_party (ncid);"
+}
+HPartyFilter() {
+	local party lparty
+	echo "
+	CREATE TEMP TABLE h0_party as SELECT ncid, 1 as votes
+	, SUBSTR(election_lbl, 7)||'-'||
+        SUBSTR(election_lbl, 1, 2)||'-'||
+        SUBSTR(election_lbl, 4,2) as election_lbl_iso
+	"
+	for party in "$@"; do
+		lparty="${party,,}"
+		echo ", voted_party_cd='$party' as v_$lparty"
+	done
+	echo "FROM l_ncvhisstatewide;"
+	echo "
+	CREATE TABLE h_party as SELECT ncid, sum(votes) as votes
+	, min(election_lbl_iso) as v_first
+	, max(election_lbl_iso) as v_last
+	"
+	for party in "$@"; do
+		lparty="${party,,}"
+		echo ", sum(v_$lparty) as v_$lparty"
+	done
+	echo "FROM h0_party GROUP BY ncid;"
+	echo "CREATE INDEX h_party_ncid on h_party (ncid);"
 }
 Main "$@"
