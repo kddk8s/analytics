@@ -8,6 +8,7 @@ zerobase="${zerofile%.*}"
 # Limit to two files for initial testing
 limit=2
 : "${L_DB:=${zerobase}.sqlite3}"
+export DMC_RECORDS=10000
 Main(){
 	local bucketdir="${BUCKET_DIR:-${zerodir}/../../buckets}"
 	local files=() file lfiles=()
@@ -17,6 +18,7 @@ Main(){
 	else
 		lfiles=( "${files[@]}" )
 	fi
+	rm -f "${L_DB}.dump"
 	for file in "${lfiles[@]}"; do
 		Process "${L_DB}" "$file"
 	done
@@ -56,10 +58,14 @@ Norm() {
 
 GetDistinct() {
 	local db="$1" src="$2" dst="$3" columns="$4"
+	local slug="${columns//, /||}"
 	# Just keep adding unique stuff
 	sqlite3 "$db" "CREATE TABLE IF NOT EXISTS $dst ($columns, PRIMARY KEY ($columns) ON CONFLICT IGNORE);"
 	sqlite3 "$db" "INSERT INTO $dst SELECT DISTINCT $columns FROM $src;"
 	# THis may be a good point to create the view
+	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vd_$dst AS SELECT rowid AS id_$dst, $slug AS $dst FROM $dst;"
+	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vs_$dst AS SELECT rowid, $slug AS $dst FROM $src;"
+	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vds_$dst AS SELECT rowid, id_$dst from vs_$dst JOIN vd_$dst ON vs_$dst.$dst = vd_$dst.$dst;"
 }
 
 Main "$@"
