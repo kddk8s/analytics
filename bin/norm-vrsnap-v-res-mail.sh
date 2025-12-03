@@ -18,7 +18,7 @@ Main(){
 		lfiles=( "${files[@]}" )
 	fi
 	for file in "${lfiles[@]}"; do
-		echo "$file"
+		Process "${L_DB}" "$file"
 	done
 	exit 0
 }
@@ -26,6 +26,12 @@ Main(){
 GetFiles() {
 	find "$1"/dl.ncsbe.gov/data/Snapshots -name \*.zip |
 		sort -r
+}
+
+Process() {
+	local db="$1-load.sqlite3" file="$2"
+	rm -vf "$db" || :
+	loadit "$db" "$file"
 }
 
 Main "$@"
