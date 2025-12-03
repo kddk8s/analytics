@@ -16,17 +16,13 @@ all: .flag.snapshots
 .flag.ncv: $(TARGET_NCV)
 	(echo New: $?: echo All: $^) > $@.tmp; mv -v $@.tmp $@
 
-snapshots/%.sqlite3: $(DIR_SNAPSHOTS)/%.zip snapshots
+snapshots/%.sqlite3: $(DIR_SNAPSHOTS)/%.zip
+	mkdir -p $@D
 	loadit $@.tmp $< && mv $@.tmp $@
 
-ncv/%.sqlite3: $(DIR_NCV)/%.zip ncv
+ncv/%.sqlite3: $(DIR_NCV)/%.zip
+	mkdir -p $@D
 	loadit $@.tmp $< && mv $@.tmp $@
-
-snapshots:
-	mkdir -p $@
-
-ncv:
-	mkdir -p $@
 
 check:
 	echo $(INPUT_SNAPSHOTS)
