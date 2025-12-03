@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS n_precincts (
 , res_city_desc
 , state_cd
 , zip_code
+, mail_city
+, mail_state
+, mail_zipcode
 , precinct_abbrv
 , precinct_desc
 , municipality_abbrv
@@ -42,6 +45,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS n_precincts_u ON n_precincts (
 , res_city_desc
 , state_cd
 , zip_code
+, mail_city
+, mail_state
+, mail_zipcode
 , precinct_abbrv
 , precinct_desc
 , municipality_abbrv
@@ -55,6 +61,9 @@ INSERT OR IGNORE INTO n_precincts (
 , res_city_desc
 , state_cd
 , zip_code
+, mail_city
+, mail_state
+, mail_zipcode
 , precinct_abbrv
 , precinct_desc
 , municipality_abbrv
@@ -67,6 +76,9 @@ INSERT OR IGNORE INTO n_precincts (
 , res_city_desc
 , state_cd
 , zip_code
+, mail_city
+, mail_state
+, mail_zipcode
 , precinct_abbrv
 , precinct_desc
 , municipality_abbrv
@@ -81,6 +93,10 @@ CREATE TABLE IF NOT EXISTS n_ncid_res (
 , voter_reg_num
 , ncid
 , res_street_address
+, mail_addr1
+, mail_addr2
+, mail_addr3
+, mail_addr4
 );
 CREATE UNIQUE INDEX IF NOT EXISTS n_ncid_res_u ON n_ncid_res (
   precinct_id
@@ -88,6 +104,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS n_ncid_res_u ON n_ncid_res (
 , voter_reg_num
 , ncid
 , res_street_address
+, mail_addr1
+, mail_addr2
+, mail_addr3
+, mail_addr4
 );
 INSERT OR IGNORE INTO n_ncid_res (
   precinct_id
@@ -95,13 +115,48 @@ INSERT OR IGNORE INTO n_ncid_res (
 , voter_reg_num
 , ncid
 , res_street_address
+, mail_addr1
+, mail_addr2
+, mail_addr3
+, mail_addr4
 ) SELECT DISTINCT
   precinct_id
 , county_id
 , voter_reg_num
 , ncid
 , res_street_address
+, mail_addr1
+, mail_addr2
+, mail_addr3
+, mail_addr4
 FROM l_ncvoterstatewide NATURAL JOIN n_precincts;
+CREATE TABLE IF NOT EXISTS n_demographics (
+  demographic_id INTEGER PRIMARY KEY
+, status_cd
+, voter_status_desc
+, reason_cd
+, voter_status_reason_desc
+, confidential_ind
+, race_code
+, ethnic_code
+, party_cd
+, gender_code
+, birth_state
+, drivers_lic
+);
+CREATE UNIQUE INDEX IF NOT EXISTS n_demographics_u (
+  status_cd
+, voter_status_desc
+, reason_cd
+, voter_status_reason_desc
+, confidential_ind
+, race_code
+, ethnic_code
+, party_cd
+, gender_code
+, birth_state
+, drivers_lic
+);
 EEOOTT
 }
 Main "$@"
