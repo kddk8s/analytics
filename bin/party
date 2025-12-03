@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e -u -x -o pipefail
+Main() {
+rm -vf "$1"
+cat > party.sql <<EEOOTT
+ATTACH DATABASE '$2' as ncvoter;
+ATTACH DATABASE '$3' as ncvhis;
+$(VPartyFilter UNA DEM REP LIB GRE)
+.schema
+EEOOTT
+sqlite3 "$1" -init party.sql
+}
+VPartyFilter() {
+	local party lparty
+	echo "CREATE TABLE r_party as SELECT ncid"
+	for party in "$@"; do
+		lparty="${party,,}"
+		echo ", party_cd='$party' as r_$lparty"
+	done
+	echo "FROM l_ncvoterstatewide;"
+	echo ".schema"
+}
+Main "$@"
