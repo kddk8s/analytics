@@ -3,7 +3,7 @@ set -e -u -o pipefail
 set -x
 zero=$(readlink -f "$0")
 zerodir="${zero%/*}"
-zerofile="${zero#zerodir/}"
+zerofile="${zero#$zerodir/}"
 Main(){
 	local bucketdir="${BUCKET_DIR:-${zerodir}/../../buckets}"
 	local files=(
