@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+set -u
+set -x
+set -o pipefail
+Main(){
+	local db="$1"; shift
+	local ncvoter="$1"; shift
+	local ncvhis="$1"; shift
+	local sql
+	if [ -z "${DEBUG:-}" ]; then
+		sql=.quit
+	fi
+	sqlite3 --init <(Setup) "$db" ${sql:+$sql}
+}
+Setup() {
+	:
+}
+Main "$@"
