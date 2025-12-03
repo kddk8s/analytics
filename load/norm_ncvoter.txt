@@ -24,10 +24,13 @@ name                    data type          description
 ------------------------------------------------------------------------------------
 county_id               int                County identification number 
 	precincts
+	rres
 county_desc             varchar(15)        County name
 	precincts
 voter_reg_num           char(12)           Voter registration number (unique to county)
+	rres
 ncid                    char(12)           North Carolina identification (NCID) number
+	rres
 last_name               varchar(25)        Voter last name 
 first_name              varchar(20)        Voter first name
 middle_name             varchar(20)        Voter middle name
@@ -37,7 +40,7 @@ voter_status_desc       varchar(25)        Registration status description
 reason_cd               varchar(2)         Registration status reason code
 voter_status_reason_desc varchar(60)       Registration status reason description
 res_street_address      varvarchar(65)     Residential street address
-	precincts
+	rres
 res_city_desc           varchar(60)        Residential city name
 	precincts
 state_cd                varchar(2)         Residential address state code 

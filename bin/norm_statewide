@@ -18,13 +18,13 @@ Setup() {
 	cat << EEOOTT
 .timer on
 .echo on
+.bail on
 ATTACH DATABASE '$1' as ncvoter;
 ATTACH DATABASE '$2' as ncvhis;
 CREATE TABLE IF NOT EXISTS n_precincts (
   precinct_id INTEGER PRIMARY KEY
 , county_id
 , county_desc
-, res_street_address
 , res_city_desc
 , state_cd
 , zip_code
@@ -36,10 +36,9 @@ CREATE TABLE IF NOT EXISTS n_precincts (
 , vtd_desc
 , zip_code_5 GENERATED ALWAYS AS (substr(zip_code, 1, 5)) STORED
 );
-CREATE UNIQUE INDEX n_precincts_u ON n_precincts (
+CREATE UNIQUE INDEX IF NOT EXISTS n_precincts_u ON n_precincts (
   county_id
 , county_desc
-, res_street_address
 , res_city_desc
 , state_cd
 , zip_code
@@ -53,7 +52,6 @@ CREATE UNIQUE INDEX n_precincts_u ON n_precincts (
 INSERT OR IGNORE INTO n_precincts (
   county_id
 , county_desc
-, res_street_address
 , res_city_desc
 , state_cd
 , zip_code
@@ -66,7 +64,6 @@ INSERT OR IGNORE INTO n_precincts (
 ) SELECT DISTINCT
   county_id
 , county_desc
-, res_street_address
 , res_city_desc
 , state_cd
 , zip_code
@@ -77,6 +74,34 @@ INSERT OR IGNORE INTO n_precincts (
 , vtd_abbrv
 , vtd_desc
 FROM l_ncvoterstatewide;
+CREATE TABLE IF NOT EXISTS n_ncid_res (
+  ncid_res_id INTEGER PRIMARY KEY
+, precinct_id
+, county_id
+, voter_reg_num
+, ncid
+, res_street_address
+);
+CREATE UNIQUE INDEX IF NOT EXISTS n_ncid_res_u ON n_ncid_res (
+  precinct_id
+, county_id
+, voter_reg_num
+, ncid
+, res_street_address
+);
+INSERT OR IGNORE INTO n_ncid_res (
+  precinct_id
+, county_id
+, voter_reg_num
+, ncid
+, res_street_address
+) SELECT DISTINCT
+  precinct_id
+, county_id
+, voter_reg_num
+, ncid
+, res_street_address
+FROM l_ncvoterstatewide NATURAL JOIN n_precincts;
 EEOOTT
 }
 Main "$@"
