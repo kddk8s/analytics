@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e -u -x -o pipefail
+Main() {
+    rm -vf "$1"
+    sqlite3 "$1" "
+    ATTACH DATABASE '$2' as ncvhis;
+    DROP VIEW IF EXISTS v_ncvhis_iso;
+    CREATE VIEW ncvhis.v_ncvhis_iso as SELECT
+        SUBSTR(election_lbl, 7)||'-'||
+        SUBSTR(election_lbl, 1, 2)||'-'||
+        SUBSTR(election_lbl, 4,2) as election_lbl_iso, * from l_ncvhisstatewide;
+    DROP TABLE IF EXISTS a_pref2;
+    CREATE TABLE a_pref2 AS SELECT ncid
+        , min(election_lbl_iso) as first_party_type
+        , max(election_lbl_iso) as last_party_type
+        , voted_party_cd
+        , substr(election_desc, instr(election_desc, ' ')+1) as election_type
+        , voting_method
+        , count(1) as votes_party_type
+        FROM v_ncvhis_iso group by ncid, voted_party_cd, election_type, voting_method;
+    DROP VIEW IF EXISTS a_pref1;
+    CREATE VIEW a_pref1 as SELECT ncid
+        , min(first_party_type) as first
+        , max(last_party_type) as last
+        , voted_party_cd
+        , sum(votes_party_type) as votes
+        FROM a_pref2 group by ncid, voted_party_cd;
+    "
+    exit 0
+}
+Main "$@"
+# shellcheck disable=SC2317
+exit 1
