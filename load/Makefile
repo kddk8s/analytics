@@ -43,6 +43,7 @@ candidates/%.sqlite3: icandidates/%.csv
 .flag.icandidates:
 	mkdir -p icandidates
 	ln --symbolic --no-dereference --force --verbose --relative --target-directory=icandidates $(DIR_CANDIDATES)/*/*/*.csv
+	for d in icandidates/*; do touch --no-dereference --reference="$$(readlink -f "$$d")" "$$d"; done
 
 
 check:
