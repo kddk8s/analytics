@@ -45,15 +45,15 @@ Norm() {
 	local db="$1" table_pat="$2" table
 	table=$(sqlite3 "$db" ".tables $table_pat")
 	# f_* for what become foreign keys
-	GetDistinct "$db" "$table" "f_snapshot" "snapshot_dt"
-	GetDistinct "$db" "$table" "f_vid" "ncid, county_id, voter_reg_num"
+	GetDistinct "$db" "$table" "f_1snapshot" "snapshot_dt"
+	GetDistinct "$db" "$table" "f_0vid" "ncid, county_id, voter_reg_num"
 	# Skips status_cd, voter_status_desc, reason_cd, voter_status_reason_desc
 	GetDistinct "$db" "$table" "f_name" "last_name, first_name, midl_name, name_sufx_cd"
 	# Just in case a residence changes counties
 	GetDistinct "$db" "$table" "f_res" "county_id, house_num, half_code, street_dir, street_name, street_type_cd, street_sufx_cd, unit_num, res_city_desc, state_cd, zip_code"
 	GetDistinct "$db" "$table" "f_mail" "mail_addr1, mail_addr2, mail_addr3, mail_addr4, mail_city, mail_state, mail_zipcode"
 	# Misses everything starting at area_cd
-
+	NormJoin "$db" vr_id_res_mail "vds_%"
 }
 
 GetDistinct() {
@@ -64,10 +64,40 @@ GetDistinct() {
 	sqlite3 "$db" "INSERT INTO $dst SELECT DISTINCT $columns FROM $src;"
 	# THis may be a good point to create the view
 	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vd_$dst AS SELECT rowid AS id_$dst, $slug AS $dst FROM $dst;"
-	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vs_$dst AS SELECT rowid, $slug AS $dst FROM $src;"
+	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vs_$dst AS SELECT rowid, $slug AS $dst FROM $src;" 
 	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vds_$dst AS SELECT rowid, id_$dst from vs_$dst JOIN vd_$dst ON vs_$dst.$dst = vd_$dst.$dst;"
 }
 
-Main "$@"
-# shellcheck disable=SC2317
-exit 1
+NormJoin() {
+	local db="$1" table="$2" pattern="$3" tables=() columns=()
+	read -r -a tables < <(sqlite3 "$db" ".tables ${pattern}%")
+	readarray -t columns < <(Part2Column "$pattern" "${tables[@]}")
+	select_cols=$(Join ", " "${columns[@]}")
+	sqljoin=$(Join " NATURAL JOIN " "${tables[@]}")
+	echo "SELECT ${select_cols} FROM ${sqljoin};"
+}
+
+Part2Column() {
+	local pat="$1" part
+	shift
+	for part in "${@}"; do
+		echo "id_${part#"${pat}"}"
+	done
+}
+
+Join() {
+	local con="$1"; shift
+	local joined="$1" part; shift
+	for part in "$@"; do
+		joined="${joined}${con}${part}"
+	done
+	echo "$joined"
+}
+
+# Check if sourced https://stackoverflow.com/questions/2683279/how-to-detect-if-a-script-is-being-sourced
+if ! (return 0 2>/dev/null); then
+	#Main "$@"
+	NormJoin "$@"
+	# shellcheck disable=SC2317
+	exit 1
+fi
