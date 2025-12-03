@@ -38,43 +38,41 @@ Process() {
 		sqlite3 "$db" ".read '$db.dump'"
 	fi
 	Norm "$db" "l_vrsnap%"
-	sqlite3 "$db" ".dump --preserve-rowids f_% fv_% n_%" > "$db.dump"
+	sqlite3 "$db" ".dump --preserve-rowids f_% vn_% n_%" > "$db.dump"
 }
 
 Norm() {
-	local db="$1" table_pat="$2" table
-	table=$(sqlite3 "$db" ".tables $table_pat")
+	local db="$1" table_pat="$2" src
+	src=$(sqlite3 "$db" ".tables $table_pat")
 	# f_* for what become foreign keys
-	GetDistinct "$db" "$table" "f_1snapshot" "snapshot_dt"
-	GetDistinct "$db" "$table" "f_0vid" "ncid, county_id, voter_reg_num"
+	GetDistinct "$db" "$src" "f_1snapshot" "snapshot_dt"
+	GetDistinct "$db" "$src" "f_0vid" "ncid, county_id, voter_reg_num"
 	# Skips status_cd, voter_status_desc, reason_cd, voter_status_reason_desc
-	GetDistinct "$db" "$table" "f_name" "last_name, first_name, midl_name, name_sufx_cd"
+	GetDistinct "$db" "$src" "f_name" "last_name, first_name, midl_name, name_sufx_cd"
 	# Just in case a residence changes counties
-	GetDistinct "$db" "$table" "f_res" "county_id, house_num, half_code, street_dir, street_name, street_type_cd, street_sufx_cd, unit_num, res_city_desc, state_cd, zip_code"
-	GetDistinct "$db" "$table" "f_mail" "mail_addr1, mail_addr2, mail_addr3, mail_addr4, mail_city, mail_state, mail_zipcode"
+	GetDistinct "$db" "$src" "f_res" "county_id, house_num, half_code, street_dir, street_name, street_type_cd, street_sufx_cd, unit_num, res_city_desc, state_cd, zip_code"
+	GetDistinct "$db" "$src" "f_mail" "mail_addr1, mail_addr2, mail_addr3, mail_addr4, mail_city, mail_state, mail_zipcode"
 	# Misses everything starting at area_cd
-	NormJoin "$db" vr_id_res_mail "vds_%"
+	NormJoin "$db" n_vr_id_res_mail "$src" "vn_"
 }
 
 GetDistinct() {
 	local db="$1" src="$2" dst="$3" columns="$4"
-	local slug="${columns//, /||}"
 	# Just keep adding unique stuff
 	sqlite3 "$db" "CREATE TABLE IF NOT EXISTS $dst ($columns, PRIMARY KEY ($columns) ON CONFLICT IGNORE);"
+	# This is an ugly hack that keeps us from juggling an extra index column and lots of AS statements
+	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vn_$dst AS select rowid AS id_$dst, * FROM $dst;"
 	sqlite3 "$db" "INSERT INTO $dst SELECT DISTINCT $columns FROM $src;"
-	# THis may be a good point to create the view
-	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vd_$dst AS SELECT rowid AS id_$dst, $slug AS $dst FROM $dst;"
-	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vs_$dst AS SELECT rowid, $slug AS $dst FROM $src;" 
-	sqlite3 "$db" "CREATE VIEW IF NOT EXISTS vds_$dst AS SELECT rowid, id_$dst from vs_$dst JOIN vd_$dst ON vs_$dst.$dst = vd_$dst.$dst;"
 }
 
 NormJoin() {
-	local db="$1" table="$2" pattern="$3" tables=() columns=()
+	local db="$1" table="$2" src="$3" pattern="$4" tables=() columns=()
 	read -r -a tables < <(sqlite3 "$db" ".tables ${pattern}%")
 	readarray -t columns < <(Part2Column "$pattern" "${tables[@]}")
 	select_cols=$(Join ", " "${columns[@]}")
-	sqljoin=$(Join " NATURAL JOIN " "${tables[@]}")
-	echo "SELECT ${select_cols} FROM ${sqljoin};"
+	sqljoin=$(Join " NATURAL JOIN " "$src" "${tables[@]}")
+	sqlite3 "$db" "CREATE TABLE IF NOT EXISTS "$table" ($select_cols, PRIMARY KEY ($select_cols) ON CONFLICT IGNORE);"
+	sqlite3 "$db" "INSERT INTO $table SELECT ${select_cols} FROM ${sqljoin};"
 }
 
 Part2Column() {
@@ -96,8 +94,8 @@ Join() {
 
 # Check if sourced https://stackoverflow.com/questions/2683279/how-to-detect-if-a-script-is-being-sourced
 if ! (return 0 2>/dev/null); then
-	#Main "$@"
-	NormJoin "$@"
+	Main "$@"
+	# NormJoin "$@"
 	# shellcheck disable=SC2317
 	exit 1
 fi
