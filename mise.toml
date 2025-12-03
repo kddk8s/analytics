@@ -1,0 +1,6 @@
+[env]
+_.path = [
+"../../k8e/k8e-dirty/bin",
+"../k8e-dirty/bin",
+"./bin"
+]
