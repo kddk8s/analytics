@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+set -u
+set -o pipefail
+set -x
+zero=$(readlink -f "$0")
+zerodir="${zero%/*}"
+db="${zerodir%/*}/load/ncv/ncvoter_Statewide.sqlite3"
+Main() {
+	sqlite3 "$db" "select distinct county_desc, res_city_desc, zip_code, precinct_abbrv from l_ncvoterstatewide where res_street_address LIKE '$1'"
+}
+Main "$@"
