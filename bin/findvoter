@@ -12,6 +12,7 @@ declare -A expansion=(
 	["ln"]=last_name
 	["pa"]=precinct_abbrv
 	["rs"]=res_street_address
+	["nc"]=ncid
 	)
 Main() {
 	local terms=(1) term lh rh
