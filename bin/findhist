@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+set -u
+set -o pipefail
+set -x
+zero=$(readlink -f "$0")
+zerodir="${zero%/*}"
+db="${zerodir%/*}/load/ncv/ncvhis_Statewide.sqlite3"
+Main() {
+	sqlite3 "$db" "select voted_party_cd, *  from l_ncvhisstatewide where ncid='${1@U}' order by voted_party_cd"
+}
+Main "$@"
