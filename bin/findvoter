@@ -2,17 +2,22 @@
 set -e
 set -u
 set -o pipefail
-set -x
+# set -x
 zero=$(readlink -f "$0")
 zerodir="${zero%/*}"
 db="${zerodir%/*}/load/ncv/ncvoter_Statewide.sqlite3"
 declare -A expansion=(
+	["by"]=birth_year
+	["cd"]=county_desc
 	["fn"]=first_name
-	["mn"]=middle_name
 	["ln"]=last_name
-	["pa"]=precinct_abbrv
-	["rs"]=res_street_address
+	["mn"]=middle_name
 	["nc"]=ncid
+	["pa"]=precinct_abbrv
+	["pc"]=party_cd
+	["rc"]=res_city_desc
+	["rs"]=res_street_address
+	["zc"]=zip_code
 	)
 Main() {
 	local terms=(1) term lh rh
@@ -22,6 +27,6 @@ Main() {
 		terms+=(AND "${expansion[${lh}]}" LIKE "'${rh@U}'")
 	done
 	echo "${terms[*]}"
-	sqlite3 "$db" "select distinct county_desc, res_city_desc, zip_code, precinct_abbrv, party_cd, race_code, res_street_address, first_name, middle_name, last_name, birth_year, birth_state, full_phone_number, registr_dt, ncid from l_ncvoterstatewide where ${terms[*]}"
+	sqlite3 "$db" "select distinct county_desc, res_city_desc, zip_code, precinct_abbrv, party_cd, race_code, gender_code, res_street_address, first_name, middle_name, last_name, birth_year, birth_state, full_phone_number, registr_dt, ncid from l_ncvoterstatewide where ${terms[*]} order by res_street_address, party_cd, birth_year"
 }
 Main "$@"
