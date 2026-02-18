@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e -u -o pipefail
+set -x
+Main() {
+	local db
+	for db in "$@"; do
+		AddView "$db"
+	done
+}
+AddView() {
+	local table view
+	table=$(sqlite3 "$1" ".tables l_%")
+	case "$table" in
+		*snapshot*) view=snapshot;;
+		*) echo "Unknown table $table on database $1"; return 1 ;;
+	esac
+	sqlite3 "$1" ".bail on" "CREATE VIEW IF NOT EXISTS $view AS SELECT * FROM $table;" ".tables"
+}
+Main "$@"
+exit 2
+
