@@ -19,7 +19,7 @@ all: .flag.ncv .flag.snapshots .flag.candidates
 .flag.snapshots: $(TARGET_SNAPSHOTS)
 	(echo New: $?; echo All: $^) > $@.tmp ; mv -v $@.tmp $@
 
-.flag.ncv: $(TARGET_NCV) ncv/party.sqlite3
+.flag.ncv: $(TARGET_NCV)
 	(echo New: $?: echo All: $^) > $@.tmp; mv -v $@.tmp $@
 
 .flag.candidates: .flag.icandidates $(TARGET_CANDIDATES)
@@ -32,9 +32,6 @@ snapshots/%.sqlite3: $(DIR_SNAPSHOTS)/%.zip
 ncv/%.sqlite3: $(DIR_NCV)/%.zip
 	mkdir -p $(@D)
 	loadit $@.tmp $< && mv $@.tmp $@
-
-ncv/party.sqlite3: ncv/ncvoter_Statewide.sqlite3 ncv/ncvhis_Statewide.sqlite3
-	party $@ $^
 
 candidates/%.sqlite3: icandidates/%.csv
 	mkdir -p $(@D)
