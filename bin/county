@@ -8,12 +8,22 @@ Main() {
 	local his="$3"
 	local county="${4:-WAKE}"
 	rm -vf "$tgt"
-	sqlite3 "$tgt" ".bail on" ".timer ON" ".echo on"\
-		"ATTACH DATABASE '$voter' AS voter;"\
-		"CREATE TABLE ${county,,}_voter AS SELECT * FROM ncvoter WHERE county_desc='${county^^}';"\
-		"ATTACH DATABASE '$his' as his;"\
-		"CREATE TABLE ${county,,}_his as SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);"
+	# Kludgery to make sure inputs exist
+	sqlite3 -bail -ifexists "$voter" ".tables"
+	sqlite3 -bail -ifexists "$his" ".tables"
+	sqlite3 -bail -echo -init <(SQL) "$tgt" ".tables"
 	exit 0
+}
+SQL() {
+	cat << EEOOTT
+.bail ON
+.echo ON
+.timer ON
+ATTACH DATABASE '$voter' AS voter;
+CREATE TABLE ${county,,}_voter AS SELECT * FROM ncvoter WHERE county_desc='${county^^}';
+ATTACH DATABASE '$his' as his;
+CREATE TABLE ${county,,}_his as SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);
+EEOOTT
 }
 Main "$@"
 exit 2
