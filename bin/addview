@@ -6,16 +6,30 @@ Main() {
 	for db in "$@"; do
 		AddView "$db"
 	done
+	exit 0
 }
 AddView() {
-	local table view
+	local table view columns
 	table=$(sqlite3 "$1" ".tables l_%")
+	# Move to Function
 	case "$table" in
-		*snapshot*) view=snapshot;;
+		*snapshot*) view=snapshot columns='*';;
+		*ncvhis*) view=ncvhis columns='*';;
+		*ncvoter*) view=ncvoter columns='*';;
+		*candidate*) view=candidate columns="$(CandidateColumns "$(sqlite3 "$1" ".schema l_%")")";;
 		*) echo "Unknown table $table on database $1"; return 1 ;;
 	esac
-	sqlite3 "$1" ".bail on" "CREATE VIEW IF NOT EXISTS $view AS SELECT * FROM $table;" ".tables"
+	sqlite3 "$1" ".bail on" "DROP VIEW IF EXISTS $view; CREATE VIEW IF NOT EXISTS $view AS SELECT $columns FROM $table;" ".tables"
+}
+CandidateColumns() {
+	local columns
+	case "$1" in
+		*email*) columns="*";;
+		*) columns="election_dt, county_name, contest_name, name_on_ballot, first_name, middle_name, last_name, name_suffix_lbl, nick_name, street_address, city, state, zip_code, phone, office_phone, business_phone, '' as email, candidacy_dt, party_contest, party_candidate, is_unexpired, has_primary, is_partisan, vote_for, term";;
+	esac
+	echo "$columns"
 }
 Main "$@"
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this file
 exit 2
 
