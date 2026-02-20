@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e -u -o pipefail
+set -x
+Main() {
+	:
+	local tgt="$1"
+	local voter="$2"
+	local his="$3"
+	local county="${4:-WAKE}"
+	rm -vf "$tgt"
+	sqlite3 "$tgt" ".bail on" ".timer ON" ".echo on"\
+		"ATTACH DATABASE '$voter' AS voter;"\
+		"CREATE TABLE ${county,,}_voter AS SELECT * FROM ncvoter WHERE county_desc='${county^^}';"\
+		"ATTACH DATABASE '$his' as his;"\
+		"CREATE TABLE ${county,,}_his as SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);"
+	exit 0
+}
+Main "$@"
+exit 2
