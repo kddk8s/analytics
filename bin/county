@@ -12,6 +12,7 @@ Main() {
 	sqlite3 -bail -ifexists "$voter" ".tables"
 	sqlite3 -bail -ifexists "$his" ".tables"
 	sqlite3 -bail -echo -init <(SQL) "$tgt" ".tables"
+	sqlite3 "$tgt" ".tables"
 	exit 0
 }
 SQL() {
@@ -22,6 +23,22 @@ SQL() {
 ATTACH DATABASE '$voter' AS voter;
 CREATE TABLE ${county,,}_voter AS SELECT * FROM ncvoter WHERE county_desc='${county^^}';
 ATTACH DATABASE '$his' as his;
+CREATE TEMP TABLE t_election_summary as SELECT DISTINCT election_desc, election_lbl from ncvhis;
+CREATE TABLE election_summary as SELECT DISTINCT election_desc
+, 1 as catchall
+, instr(election_desc, 'GENERAL') > 0 as general
+, instr(election_desc, 'PRIMARY') > 0 as primary_election
+, instr(election_desc, 'MUN') > 0 as municipal
+, instr(election_desc, 'CONG') > 0 as congressional_desc
+, instr(election_desc, 'SECOND') > 0 as second
+, (instr(election_desc, 'SCHOOL') + instr(election_desc, 'EDUC')) > 0 as school
+, instr(election_desc, 'RUNOFF') > 0 as runoff
+, instr(election_desc, 'SANI') > 0 as sanitation
+, instr(election_desc, 'SPECIAL') > 0 as special
+, mod(substr(election_lbl, 7), 4) == 0 as presidential
+, mod(substr(election_lbl, 7), 2) == 0 as congressional
+FROM t_election_summary
+;
 CREATE TABLE ${county,,}_his as SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);
 EEOOTT
 }
