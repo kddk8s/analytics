@@ -23,9 +23,9 @@ SQL() {
 ATTACH DATABASE '$voter' AS voter;
 CREATE TABLE ${county,,}_voter AS SELECT * FROM ncvoter WHERE county_desc='${county^^}';
 ATTACH DATABASE '$his' as his;
-CREATE TEMP TABLE t_election_summary as SELECT DISTINCT election_desc, election_lbl from ncvhis;
-CREATE TABLE election_summary as SELECT DISTINCT election_desc
-, 1 as catchall
+CREATE TEMP TABLE t_election_summary AS SELECT DISTINCT election_desc, election_lbl from ncvhis;
+CREATE TABLE election_summary AS SELECT DISTINCT election_desc
+, 1 as catchall_e
 , instr(election_desc, 'GENERAL') > 0 as general
 , instr(election_desc, 'PRIMARY') > 0 as primary_election
 , instr(election_desc, 'MUN') > 0 as municipal
@@ -39,7 +39,44 @@ CREATE TABLE election_summary as SELECT DISTINCT election_desc
 , mod(substr(election_lbl, 7), 2) == 0 as congressional
 FROM t_election_summary
 ;
-CREATE TABLE ${county,,}_his as SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);
+-- Determined from: sqlite3 ../load/ncv/ncvhis_Statewide.sqlite3 'select voted_party_cd, count(1) as c from ncvhis group by voted_party_cd order by c desc;'
+CREATE TEMP TABLE t_his_party_summary as SELECT DISTINCT voted_party_cd FROM ncvhis;
+CREATE TABLE his_party_summary AS SELECT voted_party_cd, voted_party_cd as party_cd
+, 1 as catchall_p
+, voted_party_cd='DEM' as dem_h
+, voted_party_cd='REP' as rep_h
+, voted_party_cd='UNA' as una_h
+, voted_party_cd='LIB' as lib_h
+, voted_party_cd='NLB' as nlb_h
+, voted_party_cd='GRE' as gre_h
+, voted_party_cd='CST' as cst_h
+, voted_party_cd='' as null_h
+, voted_party_cd='WTP' as wtp_h
+, voted_party_cd='JFA' as jfa_h
+FROM t_his_party_summary;
+-- Determined from: sqlite3 ../load/ncv/ncvhis_Statewide.sqlite3 'select voting_method, count(1) as c from ncvhis group by voting_method order by c desc;'
+CREATE TEMP TABLE t_his_method AS SELECT DISTINCT voting_method FROM ncvhis;
+CREATE TABLE his_method_summary AS select voting_method
+, 1 as catchall_vm
+, instr(voting_method, 'ELECTION DAY') > 0 as election_day
+, instr(voting_method, 'IN-PERSON') > 0 as in_person
+, instr(voting_method, 'ABSENTEE') > 0 as absentee
+, instr(voting_method, 'EARLY VOTING') > 0 as early_voting
+, instr(voting_method, 'ONESTOP') > 0 as onestop
+, instr(voting_method, 'MAIL') > 0 as bymail
+, instr(voting_method, 'CURBSIDE') > 0 as curbside
+, instr(voting_method, 'PROVISIONAL') > 0 as provisional
+, instr(voting_method, 'TRANSFER') > 0 as transfer
+, instr(voting_method, 'ELIGIBLE DID NOT VOTE') > 0 as did_not_vote
+, instr(voting_method, 'LEGACY') > 0 as legacy
+FROM t_his_method;
+
+CREATE TABLE ${county,,}_his AS SELECT * from ncvhis WHERE ncid in (SELECT ncid FROM ${county,,}_voter);
+-- CREATE TABLE ${county,,}_his_summary AS SELECT ncid
+-- , election_desc
+-- , pct_label
+-- , voted_county_desc
+-- , vtd_label
 EEOOTT
 }
 Main "$@"
