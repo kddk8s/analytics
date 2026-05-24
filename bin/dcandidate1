@@ -1,4 +1,5 @@
 #!/bin/bash
+# Recommend running this with the year's candidates the the snapshot from the election
 set -e -u -o pipefail
 set -x
 zero=$(readlink -f "$0")
@@ -16,7 +17,8 @@ Init() {
 .echo on
 ATTACH DATABASE '$1' AS cand;
 ATTACH DATABASE '$2' as snap;
-DROP VIEW IF EXISTS snap.snahpshot_dcand;
+-- Housekeeping from before TEMP views were found
+DROP VIEW IF EXISTS snap.snapshot_dcand;
 
 -- Unique list of candidates
 CREATE TABLE IF NOT EXISTS unique_candidate AS
@@ -42,7 +44,8 @@ county_desc
 , party_cd
 , registr_dt
 FROM snap.snapshot
-WHERE status_cd='A';
+/*WHERE status_cd='A' */
+;
 
 -- Found candidates
 CREATE TABLE IF NOT EXISTS found_candidate (
@@ -101,7 +104,7 @@ SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nonpartisan_1_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
-ORDER BY contest_name, name_on_ballot, election_dt
+/* ORDER BY contest_name, name_on_ballot, election_dt*/
 ;
 
 -- nonpartisan 2
@@ -126,7 +129,7 @@ SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nonpartisan_2_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
-ORDER BY contest_name, name_on_ballot, election_dt
+/* ORDER BY contest_name, name_on_ballot, election_dt */
 ;
 
 -- nonpartisan 3
@@ -167,6 +170,7 @@ FROM unique_candidate
 NATURAL JOIN contest_district
 NATURAL JOIN candidate
 WHERE contest_name LIKE 'NC % SENATE %' 
+ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
 -- find ncsenate 1
@@ -176,7 +180,46 @@ SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM ncsenate_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
+;
+
+-- ncsenate 2
+
+CREATE TABLE IF NOT EXISTS ncsenate_2 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, nc_senate_abbrv
+, 'ncsenate 2' as note
+FROM ncsenate_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- find ncsenate 2
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM ncsenate_2
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
 ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- ncsenate 3
+
+CREATE TABLE IF NOT EXISTS ncsenate_3 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, nc_senate_abbrv
+, 'ncsenate 3' as note
+FROM ncsenate_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
 ;
 
 
