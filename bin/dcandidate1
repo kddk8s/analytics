@@ -16,6 +16,7 @@ Init() {
 .echo on
 ATTACH DATABASE '$1' AS cand;
 ATTACH DATABASE '$2' as snap;
+DROP VIEW IF EXISTS snap.snahpshot_dcand;
 
 -- Unique list of candidates
 CREATE TABLE IF NOT EXISTS unique_candidate AS
@@ -24,11 +25,12 @@ election_dt
 , contest_name
 , name_on_ballot
 FROM candidate
-ORDER BY election_dt, contest_name, name_on_ballot;
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 SELECT COUNT(1) AS unique_candidate FROM unique_candidate;
 
 -- Create VIEW to aid dcand collation
-CREATE VIEW IF NOT EXISTS snap.snapshot_dcand AS SELECT
+CREATE TEMPORARY VIEW IF NOT EXISTS snapshot_dcand AS SELECT
 county_desc
 , voter_reg_num
 , ncid
@@ -72,7 +74,9 @@ election_dt
 CREATE VIEW IF NOT EXISTS missing_candidate AS SELECT
 unique_candidate.* FROM unique_candidate
 NATURAL LEFT OUTER JOIN found_candidate
-WHERE voter_reg_num IS NULL;
+WHERE voter_reg_num IS NULL
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 -- nonpartisan 1
 
@@ -86,7 +90,9 @@ unique_candidate.*
 , 'nonpartisan 1' as note
 FROM unique_candidate
 NATURAL JOIN candidate
-WHERE is_partisan = 'FALSE';
+WHERE is_partisan = 'FALSE'
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 -- find nonpartisan 1
 
@@ -94,7 +100,9 @@ INSERT OR IGNORE INTO found_candidate
 SELECT unique_candidate.*, snapshot_dcand.*, note 
 FROM nonpartisan_1_candidate
 NATURAL JOIN unique_candidate
-NATURAL JOIN snapshot_dcand;
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 -- nonpartisan 2
 
@@ -107,7 +115,9 @@ unique_candidate.*
 FROM missing_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN candidate
-WHERE is_partisan = 'FALSE';
+WHERE is_partisan = 'FALSE'
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 -- find nonpartisan 2
 
@@ -115,7 +125,9 @@ INSERT OR IGNORE INTO found_candidate
 SELECT unique_candidate.*, snapshot_dcand.*, note 
 FROM nonpartisan_2_candidate
 NATURAL JOIN unique_candidate
-NATURAL JOIN snapshot_dcand;
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 -- nonpartisan 3
 
@@ -129,7 +141,43 @@ unique_candidate.*
 FROM missing_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN candidate
-WHERE is_partisan = 'FALSE';
+WHERE is_partisan = 'FALSE'
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+CREATE TEMP VIEW IF NOT EXISTS contest_district AS SELECT DISTINCT
+contest_name
+, substr(contest_name, instr(contest_name, 'CT ') + 3) as cdistrict
+FROM unique_candidate
+WHERE contest_name LIKE 'NC % DISTRICT %';
+
+-- ncsenate 1
+
+CREATE TABLE IF NOT EXISTS ncsenate_1 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_name as county_desc
+, last_name
+, first_name
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, cdistrict as nc_senate_abbrv
+, 'ncsenate 1' as note
+FROM unique_candidate
+NATURAL JOIN contest_district
+NATURAL JOIN candidate
+WHERE contest_name LIKE 'NC % SENATE %' 
+;
+
+-- find ncsenate 1
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM ncsenate_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
 
 
 EEOOTT
