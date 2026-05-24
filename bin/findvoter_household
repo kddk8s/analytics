@@ -1,0 +1,73 @@
+#!/bin/bash
+set -e
+set -u
+set -o pipefail
+# set -x
+zero=$(readlink -f "$0")
+zerodir="${zero%/*}"
+db="${zerodir%/*}/load/ncv/ncvoter_Statewide.sqlite3"
+declare -A expansion=(
+	["bs"]=birth_state
+	["by"]=birth_year
+	["cd"]=county_desc
+	["fn"]=first_name
+	["gc"]=gender_code
+	["ln"]=last_name
+	["mn"]=middle_name
+	["nh"]=nc_house_abbrv
+	["ns"]=nc_senate_abbrv
+	["nc"]=ncid
+	["ncid"]=ncid
+	["pa"]=precinct_abbrv
+	["pc"]=party_cd
+	["ph"]=full_phone_number
+	["rc"]=res_city_desc
+	["rs"]=res_street_address
+	["zc"]=zip_code
+	)
+Main() {
+	local terms=(1) term lh rh operator q
+	for term in "$@"; do
+		lh="${term%%=*}"
+		rh="${term#*=}"
+		case "$rh" in
+			*%*) operator=LIKE ;; 
+			*) operator== ;;
+		esac
+		terms+=(AND "${expansion[${lh}]}" $operator "'${rh@U}'")
+	done
+	echo "${terms[*]}" 1>&2
+	q="
+	select distinct
+	county_desc
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, cong_dist_abbrv
+	, nc_senate_abbrv
+	, nc_house_abbrv
+	, party_cd
+	, race_code
+	, gender_code
+	, res_street_address
+	, first_name
+	, middle_name
+	, last_name
+	, birth_year
+	, birth_state
+	, full_phone_number
+	, registr_dt
+       	, status_cd
+	, reason_cd
+	, voter_status_reason_desc
+	, ncid
+       	from l_ncvoterstatewide natural join 
+	(select 
+	zip_code
+	, res_street_address 
+	from l_ncvoterstatewide 
+	where ${terms[*]}) order by res_street_address, party_cd, birth_year"
+	echo "$q" 1>&2
+	sqlite3 "$db" ".headers on" ${CSV:+".mode csv"} "$q"
+}
+Main "$@"
