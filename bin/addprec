@@ -1,0 +1,100 @@
+#!/bin/bash
+set -e -u -o pipefail
+set -x
+# select distinct county_desc, res_city_desc, zip_code, precinct_abbrv from l_ncvoterstatewide where res_street_address LIKE '${1@U}'"
+
+Main() {
+	local db
+	for db in "$@"; do
+		AddPrec "$db"
+	done
+	exit 0
+}
+AddPrec() {
+	local table view columns
+	table=$(sqlite3 "$1" ".tables l_%")
+	# Move to Function
+	case "$table" in
+		#*snapshot*) view=snapshot columns='*';;
+		#*ncvhis*) view=ncvhis columns='*';;
+		*ncvoter*) view=ncvoter columns='*';;
+		#*candidate*) view=candidate columns="$(CandidateColumns "$(sqlite3 "$1" ".schema l_%")")";;
+		*) echo "Unknown table $table on database $1"; return 0 ;;
+	esac
+	sqlite3 "$1" -init <(Sql) ""
+}
+Sql() {
+	cat << EEOOTT
+.bail on
+.timer on
+.echo on
+	CREATE TEMP TABLE IF NOT EXISTS precinct_detail AS
+	SELECT 
+	  county_desc
+	, ncid
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, res_street_address
+	, party_cd
+	, 1 as res
+	, party_cd='DEM' as dem
+	, party_cd='REP' as rep
+	, party_cd='UNA' as una
+	, status_cd='A' as active
+	, SUBSTR(res_street_address, INSTR(res_street_address, '  ') + 2) as res_street
+	, SUBSTR(res_street_address, 1, INSTR(res_street_address, '  ')) as house_num
+	FROM l_ncvoterstatewide 
+	ORDER BY county_desc, res_city_desc, zip_code, res_street, house_num;
+	CREATE TABLE IF NOT EXISTS precinct_household AS
+	SELECT
+	county_desc
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, count(1) as registered
+	, sum(dem) as dem
+	, sum(rep) as rep
+	, sum(una) as una
+	, sum(active) as active
+	, res_street
+	, house_num
+	FROM precinct_detail
+	GROUP BY
+	county_desc
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, res_street
+	, house_num
+	;
+	CREATE TABLE IF NOT EXISTS precinct_street AS
+	SELECT
+	county_desc
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, sum(registered) as registered
+	, sum(dem) as dem
+	, sum(rep) as rep
+	, sum(una) as una
+	, sum(active) as active
+	, res_street
+	, min(1 * house_num) as house_num_min
+	, max(1 * house_num) as house_num_max
+	FROM precinct_household
+	GROUP BY
+	county_desc
+	, res_city_desc
+	, zip_code
+	, precinct_abbrv
+	, res_street
+	;
+	CREATE INDEX IF NOT EXISTS precinct_street__res_street ON precinct_street (res_street)
+        ;
+EEOOTT
+}
+Main "$@"
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this file
+exit 2
+
