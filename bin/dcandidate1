@@ -1,0 +1,41 @@
+#!/bin/bash
+set -e -u -o pipefail
+set -x
+Main() {
+	local db="$1" cand="$2" snap="$3"
+	rm -vf "$db"
+	sqlite3 "$db" --init <(Init "$cand" "$snap") 
+}
+Init() {
+	cat << EEOOTT
+.bail on
+.headers on
+.timer on
+.echo on
+ATTACH DATABASE '$1' AS cand;
+ATTACH DATABASE '$2' as snap;
+CREATE TABLE IF NOT EXISTS cand0 AS
+SELECT 
+*
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, party_candidate as party_cd
+FROM candidate;
+.bail off
+ALTER TABLE cand0 DROP COLUMN county_name;
+.bail on
+SELECT 'cand0' as t, COUNT(1) AS candidates FROM cand0;
+CREATE TABLE IF NOT EXISTS cand1 AS SELECT DISTINCT * FROM cand0;
+SELECT 'cand1' as t,COUNT(1) AS candidates FROM cand1;
+CREATE TABLE IF NOT EXISTS dcand1 AS
+SELECT * FROM cand1 NATURAL JOIN snapshot;
+SELECT 'dcand1' as t, COUNT(1) as candidates FROM dcand1;
+CREATE TABLE IF NOT EXISTS cand2 AS
+SELECT cand1.* FROM cand1
+NATURAL LEFT OUTER JOIN dcand1
+WHERE ncid IS NULL;
+SELECT 'cand2' as t, COUNT(1) as candidates FROM cand2;
+EEOOTT
+}
+Main "$@"
+exit 1
