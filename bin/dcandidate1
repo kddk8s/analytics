@@ -7,7 +7,7 @@ zerodir="${zero%/*}"
 Main() {
 	local db="$1" cand="$2" snap="$3"
 	rm -vf "$db"
-	sqlite3 "$db" --init <(Init "$cand" "$snap" "$zerodir/../load/ncv/ncvoter_Statewide.sqlite3") 
+	sqlite3 "$db" --init <(Init "$cand" "$snap" "$zerodir/../load/ncv/ncvoter_Statewide.sqlite3")
 }
 Init() {
 	cat << EEOOTT
@@ -85,7 +85,7 @@ ORDER BY contest_name, name_on_ballot, election_dt
 
 CREATE TABLE IF NOT EXISTS nonpartisan_1_candidate AS SELECT
 unique_candidate.*
-, county_name as county_desc 
+, county_name as county_desc
 , last_name
 , first_name
 , middle_name as midl_name
@@ -100,7 +100,7 @@ ORDER BY contest_name, name_on_ballot, election_dt
 -- find nonpartisan 1
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nonpartisan_1_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -111,7 +111,7 @@ NATURAL JOIN snapshot_dcand
 
 CREATE TABLE IF NOT EXISTS nonpartisan_2_candidate AS SELECT
 unique_candidate.*
-, county_name as county_desc 
+, county_name as county_desc
 , last_name
 , first_name
 , 'nonpartisan 2' as note
@@ -125,7 +125,7 @@ ORDER BY contest_name, name_on_ballot, election_dt
 -- find nonpartisan 2
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nonpartisan_2_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -136,7 +136,7 @@ NATURAL JOIN snapshot_dcand
 
 CREATE TABLE IF NOT EXISTS nonpartisan_3_candidate AS SELECT
 unique_candidate.*
-, county_name as county_desc 
+, county_name as county_desc
 , last_name
 , first_name
 , middle_name
@@ -174,14 +174,14 @@ unique_candidate.*
 FROM unique_candidate
 NATURAL JOIN contest_district
 NATURAL JOIN candidate
-WHERE contest_name LIKE 'NC STATE SENATE %' 
+WHERE contest_name LIKE 'NC STATE SENATE %'
 ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
 -- find ncsenate 1
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM ncsenate_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -206,7 +206,7 @@ NATURAL JOIN missing_candidate
 -- find ncsenate 2
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM ncsenate_2
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -245,14 +245,14 @@ unique_candidate.*
 FROM unique_candidate
 NATURAL JOIN contest_district
 NATURAL JOIN candidate
-WHERE contest_name LIKE 'NC HOUSE %' 
+WHERE contest_name LIKE 'NC HOUSE %'
 ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
 -- find nchouse 1
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nchouse_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -277,7 +277,7 @@ NATURAL JOIN missing_candidate
 -- find nchouse 2
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM nchouse_2
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -315,14 +315,14 @@ unique_candidate.*
 FROM unique_candidate
 NATURAL JOIN contest_district
 NATURAL JOIN candidate
-WHERE contest_name LIKE 'US HOUSE %' 
+WHERE contest_name LIKE 'US HOUSE %'
 ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
 -- find ushouse 1
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM ushouse_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -346,7 +346,7 @@ NATURAL JOIN missing_candidate
 -- find ushouse 2
 
 INSERT OR IGNORE INTO found_candidate
-SELECT unique_candidate.*, snapshot_dcand.*, note 
+SELECT unique_candidate.*, snapshot_dcand.*, note
 FROM ushouse_2
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand
@@ -366,6 +366,87 @@ unique_candidate.*
 FROM ushouse_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN missing_candidate
+;
+
+-- cjs 1
+
+CREATE TABLE IF NOT EXISTS cjs_1 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_name as county_desc
+, last_name
+, first_name
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, party_candidate as party_cd
+, 'cjs 1' as note
+FROM unique_candidate
+NATURAL JOIN candidate
+WHERE (
+contest_name LIKE '%COUNTY%' OR
+contest_name LIKE '%JUDGE%' OR
+contest_name LIKE '%SCHOOL%' OR
+1
+)
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- find cjs 1
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note
+FROM cjs_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+;
+
+-- cjs 2
+
+CREATE TABLE IF NOT EXISTS cjs_2 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, party_cd
+, 'cjs 2' as note
+FROM cjs_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- find cjs 2
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note
+FROM cjs_2
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- cjs 3
+
+CREATE TABLE IF NOT EXISTS cjs_3 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, party_cd
+, 'cjs 3' as note
+FROM cjs_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- final missing
+
+CREATE TABLE IF NOT EXISTS final_missing AS
+SELECT candidate.*
+FROM missing_candidate
+NATURAL JOIN candidate
+ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
 
