@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e -u -o pipefail
+set -e -u
+set -o pipefail
 set -x
 Main() {
 	local db
@@ -19,7 +20,11 @@ AddView() {
 		*candidate*) view=candidate columns="$(CandidateColumns "$(sqlite3 "$1" ".schema l_%")")";;
 		*) echo "Unknown table $table on database $1"; return 1 ;;
 	esac
-	sqlite3 "$1" ".bail on" "DROP VIEW IF EXISTS $view; CREATE VIEW IF NOT EXISTS $view AS SELECT $columns FROM $table;" ".tables"
+	local rc=0
+	sqlite3 "$1" ".bail on" "DROP VIEW IF EXISTS $view; CREATE VIEW IF NOT EXISTS $view AS SELECT $columns FROM $table;" ".tables" || rc="$?"
+	if [[ -z "${SKIP_LOCK:-}" ]]; then
+		return "$rc"
+	fi
 }
 CandidateColumns() {
 	local columns
