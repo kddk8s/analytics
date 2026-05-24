@@ -169,7 +169,7 @@ unique_candidate.*
 FROM unique_candidate
 NATURAL JOIN contest_district
 NATURAL JOIN candidate
-WHERE contest_name LIKE 'NC % SENATE %' 
+WHERE contest_name LIKE 'NC STATE SENATE %' 
 ORDER BY contest_name, name_on_ballot, election_dt
 ;
 
@@ -218,6 +218,74 @@ unique_candidate.*
 , nc_senate_abbrv
 , 'ncsenate 3' as note
 FROM ncsenate_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- nchouse 1
+
+CREATE TABLE IF NOT EXISTS nchouse_1 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_name as county_desc
+, last_name
+, first_name
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, cdistrict as nc_house_abbrv
+, 'nchouse 1' as note
+FROM unique_candidate
+NATURAL JOIN contest_district
+NATURAL JOIN candidate
+WHERE contest_name LIKE 'NC HOUSE %' 
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- find nchouse 1
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM nchouse_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+;
+
+-- nchouse 2
+
+CREATE TABLE IF NOT EXISTS nchouse_2 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, nc_house_abbrv
+, 'nchouse 2' as note
+FROM nchouse_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- find nchouse 2
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM nchouse_2
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- nchouse 3
+
+CREATE TABLE IF NOT EXISTS nchouse_3 AS
+SELECT DISTINCT
+unique_candidate.*
+, county_desc
+, last_name
+, first_name
+, nc_house_abbrv
+, 'nchouse 3' as note
+FROM nchouse_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN missing_candidate
 ;
