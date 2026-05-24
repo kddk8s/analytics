@@ -1,10 +1,12 @@
 #!/bin/bash
 set -e -u -o pipefail
 set -x
+zero=$(readlink -f "$0")
+zerodir="${zero%/*}"
 Main() {
 	local db="$1" cand="$2" snap="$3"
 	rm -vf "$db"
-	sqlite3 "$db" --init <(Init "$cand" "$snap") 
+	sqlite3 "$db" --init <(Init "$cand" "$snap" "$zerodir/../load/ncv/ncvoter_Statewide.sqlite3") 
 }
 Init() {
 	cat << EEOOTT
@@ -20,7 +22,8 @@ SELECT
 , middle_name as midl_name
 , name_suffix_lbl as name_sufx_cd
 , party_candidate as party_cd
-FROM candidate;
+FROM candidate
+ORDER BY election_dt, contest_name, name_on_ballot;
 .bail off
 ALTER TABLE cand0 DROP COLUMN county_name;
 .bail on
@@ -35,6 +38,35 @@ SELECT cand1.* FROM cand1
 NATURAL LEFT OUTER JOIN dcand1
 WHERE ncid IS NULL;
 SELECT 'cand2' as t, COUNT(1) as candidates FROM cand2;
+.bail off
+ALTER TABLE cand2 DROP COLUMN zip_code;
+.bail on
+CREATE TABLE IF NOT EXISTS dcand2 AS
+SELECT * FROM cand2 NATURAL JOIN snapshot;
+SELECT 'dcand2' as t, COUNT(1) AS candidates FROM dcand2;
+CREATE TABLE IF NOT EXISTS cand3 AS
+SELECT cand2.* FROM cand2
+NATURAL LEFT OUTER JOIN dcand2
+WHERE ncid IS NULL;
+SELECT 'cand3' as t, COUNT(1) AS candidates from cand3;
+.bail off
+ALTER TABLE cand3 DROP COLUMN party_cd;
+ALTER TABLE cand3 DROP COLUMN midl_name;
+ALTER TABLE cand3 DROP COLUMN name_sufx_cd ;
+.bail on
+CREATE TABLE IF NOT EXISTS dcand3 AS
+SELECT * from cand3 NATURAL JOIN snapshot;
+CREATE TABLE IF NOT EXISTS cand4 AS
+select cand3.* from cand3
+NATURAL LEFT OUTER JOIN dcand3
+WHERE ncid IS NULL;
+ATTACH DATABASE '$3' as ncvo;
+CREATE TABLE IF NOT EXISTS dcand4 AS
+SELECT * FROM cand4 NATURAL JOIN ncvoter;
+CREATE TABLE IF NOT EXISTS cand5 AS
+SELECT cand4.* FROM cand4
+NATURAL LEFT OUTER JOIN dcand4
+WHERE ncid IS NULL;
 EEOOTT
 }
 Main "$@"
