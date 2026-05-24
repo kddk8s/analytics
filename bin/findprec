@@ -27,6 +27,6 @@ Main() {
 	echo "${terms[*]}" 1>&2
 	q="select * from precinct_street where ${terms[*]}"
 	echo "$q" 1>&2
-	sqlite3 "$db" ".header on" ".mode csv" "$q"
+	sqlite3 "$db" ".header on" ${CSV:+".mode csv"} "$q"
 }
 Main "$@"
