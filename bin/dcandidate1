@@ -152,7 +152,11 @@ CREATE TEMP VIEW IF NOT EXISTS contest_district AS SELECT DISTINCT
 contest_name
 , substr(contest_name, instr(contest_name, 'CT ') + 3) as cdistrict
 FROM unique_candidate
-WHERE contest_name LIKE 'NC % DISTRICT %';
+WHERE (
+contest_name LIKE 'NC % DISTRICT %' OR
+contest_name LIKE 'US % DISTRICT %'
+)
+;
 
 -- ncsenate 1
 
@@ -165,6 +169,7 @@ unique_candidate.*
 , middle_name as midl_name
 , name_suffix_lbl as name_sufx_cd
 , cdistrict as nc_senate_abbrv
+, party_candidate as party_cd
 , 'ncsenate 1' as note
 FROM unique_candidate
 NATURAL JOIN contest_district
@@ -191,6 +196,7 @@ unique_candidate.*
 , last_name
 , first_name
 , nc_senate_abbrv
+, party_cd
 , 'ncsenate 2' as note
 FROM ncsenate_1
 NATURAL JOIN unique_candidate
@@ -216,6 +222,7 @@ unique_candidate.*
 , last_name
 , first_name
 , nc_senate_abbrv
+, party_cd
 , 'ncsenate 3' as note
 FROM ncsenate_1
 NATURAL JOIN unique_candidate
@@ -233,6 +240,7 @@ unique_candidate.*
 , middle_name as midl_name
 , name_suffix_lbl as name_sufx_cd
 , cdistrict as nc_house_abbrv
+, party_candidate as party_cd
 , 'nchouse 1' as note
 FROM unique_candidate
 NATURAL JOIN contest_district
@@ -259,6 +267,7 @@ unique_candidate.*
 , last_name
 , first_name
 , nc_house_abbrv
+, party_cd
 , 'nchouse 2' as note
 FROM nchouse_1
 NATURAL JOIN unique_candidate
@@ -284,8 +293,77 @@ unique_candidate.*
 , last_name
 , first_name
 , nc_house_abbrv
+, party_cd
 , 'nchouse 3' as note
 FROM nchouse_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- ushouse 1
+
+CREATE TABLE IF NOT EXISTS ushouse_1 AS
+SELECT DISTINCT
+unique_candidate.*
+, last_name
+, first_name
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, cdistrict as cong_dist_abbrv
+, party_candidate as party_cd
+, 'ushouse 1' as note
+FROM unique_candidate
+NATURAL JOIN contest_district
+NATURAL JOIN candidate
+WHERE contest_name LIKE 'US HOUSE %' 
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- find ushouse 1
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM ushouse_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+;
+
+-- ushouse 2
+
+CREATE TABLE IF NOT EXISTS ushouse_2 AS
+SELECT DISTINCT
+unique_candidate.*
+, last_name
+, first_name
+, cong_dist_abbrv
+, party_cd
+, 'ushouse 2' as note
+FROM ushouse_1
+NATURAL JOIN unique_candidate
+NATURAL JOIN missing_candidate
+;
+
+-- find ushouse 2
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM ushouse_2
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand
+ORDER BY contest_name, name_on_ballot, election_dt
+;
+
+-- ushouse 3
+
+CREATE TABLE IF NOT EXISTS ushouse_3 AS
+SELECT DISTINCT
+unique_candidate.*
+, last_name
+, first_name
+, cong_dist_abbrv
+, party_cd
+, 'ushouse 3' as note
+FROM ushouse_1
 NATURAL JOIN unique_candidate
 NATURAL JOIN missing_candidate
 ;
