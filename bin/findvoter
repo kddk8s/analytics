@@ -39,6 +39,6 @@ Main() {
 	echo "${terms[*]}" 1>&2
 	q="select distinct status_cd, reason_cd, voter_status_reason_desc, county_desc, res_city_desc, zip_code, precinct_abbrv, cong_dist_abbrv, nc_senate_abbrv, nc_house_abbrv, party_cd, race_code, gender_code, res_street_address, first_name, middle_name, last_name, birth_year, birth_state, full_phone_number, registr_dt, ncid from l_ncvoterstatewide where ${terms[*]} order by res_street_address, party_cd, birth_year"
 	echo "$q" 1>&2
-	sqlite3 "$db" "$q"
+	sqlite3 "$db" ".headers on" ".mode csv" "$q"
 }
 Main "$@"
