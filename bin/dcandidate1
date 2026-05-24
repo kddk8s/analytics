@@ -74,27 +74,62 @@ unique_candidate.* FROM unique_candidate
 NATURAL LEFT OUTER JOIN found_candidate
 WHERE voter_reg_num IS NULL;
 
--- nonpartisan
+-- nonpartisan 1
 
-CREATE TABLE IF NOT EXISTS nonpartisan_candidate AS SELECT
+CREATE TABLE IF NOT EXISTS nonpartisan_1_candidate AS SELECT
 unique_candidate.*
 , county_name as county_desc 
 , last_name
 , first_name
 , middle_name as midl_name
 , name_suffix_lbl as name_sufx_cd
-, 'non-partisan 1' as note
+, 'nonpartisan 1' as note
 FROM unique_candidate
 NATURAL JOIN candidate
 WHERE is_partisan = 'FALSE';
 
--- find nonpartisan
+-- find nonpartisan 1
 
 INSERT OR IGNORE INTO found_candidate
 SELECT unique_candidate.*, snapshot_dcand.*, note 
-FROM nonpartisan_candidate
+FROM nonpartisan_1_candidate
 NATURAL JOIN unique_candidate
 NATURAL JOIN snapshot_dcand;
+
+-- nonpartisan 2
+
+CREATE TABLE IF NOT EXISTS nonpartisan_2_candidate AS SELECT
+unique_candidate.*
+, county_name as county_desc 
+, last_name
+, first_name
+, 'nonpartisan 2' as note
+FROM missing_candidate
+NATURAL JOIN unique_candidate
+NATURAL JOIN candidate
+WHERE is_partisan = 'FALSE';
+
+-- find nonpartisan 2
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM nonpartisan_2_candidate
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand;
+
+-- nonpartisan 3
+
+CREATE TABLE IF NOT EXISTS nonpartisan_3_candidate AS SELECT
+unique_candidate.*
+, county_name as county_desc 
+, last_name
+, first_name
+, middle_name
+, 'nonpartisan 3' as note
+FROM missing_candidate
+NATURAL JOIN unique_candidate
+NATURAL JOIN candidate
+WHERE is_partisan = 'FALSE';
 
 
 EEOOTT
