@@ -1,0 +1,87 @@
+#!/bin/bash
+set -e -u -o pipefail
+set -x
+declare -A clause=(
+	[dist]='(precinct_desc, municipality_desc, ward_desc, cong_dist_abbrv, nc_senate_abbrv, nc_house_abbrv, county_commiss_desc)'
+	[mail]='(mail_addr1, mail_addr2, mail_addr3, mail_addr4, mail_city, mail_state, mail_zipcode)'
+	[name_s]='(last_name, first_name, midl_name, name_sufx_cd)'
+	[name_v]='(last_name, first_name, middle_name, name_suffix_lbl)'
+	# Cheaper to add the midl_name and name_suffix_lbl aliases to ncvoter
+	[ncid]='(ncid)'
+	[ncid_c]='(ncid, county_id, county_desc, voter_reg_num)'
+	# This is an ugly mismatch.  Proper transform to res_street_address is hard.  Transform to res_street_address with whitepace removed may be possible
+	[residence_s]='(house_num, half_code, street_dir, street_name, street_type_cd, street_sufx_cd, unit_num, res_city_desc, state_cd, zip_code)'
+	[residence_v]='(res_street_address, res_city_desc, state_cd, zip_code)'
+	[r2_v]='(precinct_abbrv, res_street_address)'
+	[r3_v]='(precinct_abbrv, first_name, last_name, middle_name, res_street_address)'
+	[r5_v]='(precinct_abbrv)'
+	[r6_v]='(first_name)'
+	[r7_v]='(first_name, precinct_abbrv)'
+	)
+declare -p clause
+echo ${clause[ncid]}
+Main() {
+	local db
+	for db in "$@"; do
+		AddIndex "$db"
+	done
+	exit 0
+}
+AddIndex() {
+	local table indices=() index
+	table=$(sqlite3 "$1" ".tables l_%")
+	# Move to Function
+	case "$table" in
+		# 
+		*snapshot*) indices=(
+#			ncid
+			ncid_c
+			name_s
+			residence_s
+			mail
+			dist
+			)
+			;;
+		*ncvhis*) indices=(
+#			ncid
+			ncid_c
+			)
+			;;
+		*ncvoter*) indices=(
+#			ncid
+			ncid_c
+			name_v
+			residence_v
+#			r2_v
+			r3_v # Fastest for pa and first name
+#			r5_v
+#			r6_v
+#			r7_v
+			mail
+			dist
+			)
+			;;
+		*candidate*) indices=(
+			name_v
+			)
+			;;
+		*) echo "Unknown table $table on database $1"; return 1 ;;
+	esac
+	for index in "${indices[@]}"; do
+		sqlite3 "$1" ".bail on"\
+			"CREATE INDEX IF NOT EXISTS ${table}_${index} ON ${table} ${clause[$index]};"\
+			".indexes"
+	done
+}
+CandidateColumns() {
+	local columns
+	case "$1" in
+		*email*) columns="*";;
+		*) columns="election_dt, county_name, contest_name, name_on_ballot, first_name, middle_name, last_name, name_suffix_lbl, nick_name, street_address, city, state, zip_code, phone, office_phone, business_phone, '' as email, candidacy_dt, party_contest, party_candidate, is_unexpired, has_primary, is_partisan, vote_for, term";;
+	esac
+	echo "$columns"
+}
+Main "$@"
+# shellcheck disable=SC2317  # Don't warn about unreachable commands in this file
+exit 2
+
