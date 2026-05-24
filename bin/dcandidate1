@@ -16,61 +16,87 @@ Init() {
 .echo on
 ATTACH DATABASE '$1' AS cand;
 ATTACH DATABASE '$2' as snap;
-CREATE TABLE IF NOT EXISTS cand0 AS
-SELECT 
-*
-, middle_name as midl_name
-, name_suffix_lbl as name_sufx_cd
-, party_candidate as party_cd
+
+-- Unique list of candidates
+CREATE TABLE IF NOT EXISTS unique_candidate AS
+SELECT DISTINCT
+election_dt
+, contest_name
+, name_on_ballot
 FROM candidate
 ORDER BY election_dt, contest_name, name_on_ballot;
-.bail off
-ALTER TABLE cand0 DROP COLUMN county_name;
-.bail on
-SELECT 'cand0' as t, COUNT(1) AS candidates FROM cand0;
-CREATE TABLE IF NOT EXISTS cand1 AS SELECT DISTINCT * FROM cand0;
-SELECT 'cand1' as t,COUNT(1) AS candidates FROM cand1;
-CREATE TABLE IF NOT EXISTS dcand1 AS
-SELECT * FROM cand1 NATURAL JOIN snapshot;
-SELECT 'dcand1' as t, COUNT(1) as candidates FROM dcand1;
-CREATE TABLE IF NOT EXISTS cand2 AS
-SELECT cand1.* FROM cand1
-NATURAL LEFT OUTER JOIN dcand1
-WHERE ncid IS NULL;
-SELECT 'cand2' as t, COUNT(1) as candidates FROM cand2;
-.bail off
-ALTER TABLE cand2 DROP COLUMN zip_code;
-.bail on
-CREATE TABLE IF NOT EXISTS dcand2 AS
-SELECT * FROM cand2 NATURAL JOIN snapshot;
-SELECT 'dcand2' as t, COUNT(1) AS candidates FROM dcand2;
-CREATE TABLE IF NOT EXISTS cand3 AS
-SELECT cand2.* FROM cand2
-NATURAL LEFT OUTER JOIN dcand2
-WHERE ncid IS NULL;
-SELECT 'cand3' as t, COUNT(1) AS candidates from cand3;
-.bail off
-ALTER TABLE cand3 DROP COLUMN party_cd;
-ALTER TABLE cand3 DROP COLUMN midl_name;
-ALTER TABLE cand3 DROP COLUMN name_sufx_cd ;
-.bail on
-CREATE TABLE IF NOT EXISTS dcand3 AS
-SELECT * from cand3 NATURAL JOIN snapshot;
-CREATE TABLE IF NOT EXISTS cand4 AS
-select cand3.*, phone as full_phone_number from cand3
-NATURAL LEFT OUTER JOIN dcand3
-WHERE ncid IS NULL;
-.bail on
-ALTER TABLE cand4 DROP COLUMN middle_name;
-ALTER TABLE cand4 DROP COLUMN last_name;
-.bail off
-ATTACH DATABASE '$3' AS ncvo;
-CREATE TABLE IF NOT EXISTS dcand4 AS
-SELECT * FROM cand4 NATURAL JOIN ncvoter;
-CREATE TABLE IF NOT EXISTS cand5 AS
-SELECT cand4.* FROM cand4
-NATURAL LEFT OUTER JOIN dcand4
-WHERE ncid IS NULL;
+SELECT COUNT(1) AS unique_candidate FROM unique_candidate;
+
+-- Create VIEW to aid dcand collation
+CREATE VIEW IF NOT EXISTS snap.snapshot_dcand AS SELECT
+county_desc
+, voter_reg_num
+, ncid
+, last_name
+, first_name
+, midl_name
+, name_sufx_cd
+, zip_code
+, party_cd
+, registr_dt
+FROM snap.snapshot
+WHERE status_cd='A';
+
+-- Found candidates
+CREATE TABLE IF NOT EXISTS found_candidate (
+election_dt
+, contest_name
+, name_on_ballot
+, county_desc
+, voter_reg_num
+, ncid
+, last_name
+, first_name
+, midl_name
+, name_sufx_cd
+, zip_code
+, party_cd
+, registr_dt
+, note
+, PRIMARY KEY (
+election_dt
+, contest_name
+, name_on_ballot
+, county_desc
+, voter_reg_num
+, ncid
+)
+);
+
+-- Missing
+CREATE VIEW IF NOT EXISTS missing_candidate AS SELECT
+unique_candidate.* FROM unique_candidate
+NATURAL LEFT OUTER JOIN found_candidate
+WHERE voter_reg_num IS NULL;
+
+-- nonpartisan
+
+CREATE TABLE IF NOT EXISTS nonpartisan_candidate AS SELECT
+unique_candidate.*
+, county_name as county_desc 
+, last_name
+, first_name
+, middle_name as midl_name
+, name_suffix_lbl as name_sufx_cd
+, 'non-partisan 1' as note
+FROM unique_candidate
+NATURAL JOIN candidate
+WHERE is_partisan = 'FALSE';
+
+-- find nonpartisan
+
+INSERT OR IGNORE INTO found_candidate
+SELECT unique_candidate.*, snapshot_dcand.*, note 
+FROM nonpartisan_candidate
+NATURAL JOIN unique_candidate
+NATURAL JOIN snapshot_dcand;
+
+
 EEOOTT
 }
 Main "$@"
