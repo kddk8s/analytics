@@ -6,7 +6,27 @@ set -o pipefail
 zero=$(readlink -f "$0")
 zerodir="${zero%/*}"
 db="${zerodir%/*}/load/ncv/ncvoter_Statewide.sqlite3"
+declare -A expansion=(
+	["cd"]=county_desc
+	["pa"]=precinct_abbrv
+	["rc"]=res_city_desc
+	["rs"]=res_street
+	["zc"]=zip_code
+	)
 Main() {
-	sqlite3 "$db" "select distinct county_desc, res_city_desc, zip_code, precinct_abbrv from l_ncvoterstatewide where res_street_address LIKE '${1@U}'"
+	local terms=(1) term lh rh operator q
+	for term in "$@"; do
+		lh="${term%%=*}"
+		rh="${term#*=}"
+		case "$rh" in
+			*%*) operator=LIKE ;; 
+			*) operator== ;;
+		esac
+		terms+=(AND "${expansion[${lh}]}" $operator "'${rh@U}'")
+	done
+	echo "${terms[*]}" 1>&2
+	q="select * from precinct_street where ${terms[*]}"
+	echo "$q" 1>&2
+	sqlite3 "$db" ".header on" ".mode csv" "$q"
 }
 Main "$@"
