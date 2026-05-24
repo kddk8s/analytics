@@ -57,10 +57,14 @@ ALTER TABLE cand3 DROP COLUMN name_sufx_cd ;
 CREATE TABLE IF NOT EXISTS dcand3 AS
 SELECT * from cand3 NATURAL JOIN snapshot;
 CREATE TABLE IF NOT EXISTS cand4 AS
-select cand3.* from cand3
+select cand3.*, phone as full_phone_number from cand3
 NATURAL LEFT OUTER JOIN dcand3
 WHERE ncid IS NULL;
-ATTACH DATABASE '$3' as ncvo;
+.bail on
+ALTER TABLE cand4 DROP COLUMN middle_name;
+ALTER TABLE cand4 DROP COLUMN last_name;
+.bail off
+ATTACH DATABASE '$3' AS ncvo;
 CREATE TABLE IF NOT EXISTS dcand4 AS
 SELECT * FROM cand4 NATURAL JOIN ncvoter;
 CREATE TABLE IF NOT EXISTS cand5 AS
