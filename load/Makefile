@@ -9,6 +9,7 @@ DIR_CANDIDATES ?= $(DIR_BUCKET)/Elections
 INPUT_CANDIDATES = $(wildcard icandidates/*.csv)
 # $(wildcard $(DIR_CANDIDATES)/*/*/*.csv)
 TARGET_CANDIDATES = $(addprefix candidates/, $(addsuffix .sqlite3, $(basename $(notdir $(INPUT_CANDIDATES)))))
+SHELL = bash
 
 all: .flag.ncv .flag.snapshots .flag.candidates
 	echo $(DIR_BUCKET)
@@ -38,10 +39,10 @@ candidates/%.sqlite3: icandidates/%.csv
 	loadit $@.tmp $< && mv $@.tmp $@
 
 .flag.icandidates:
+	rm -rf icandidates
 	mkdir -p icandidates
-	ln --symbolic --no-dereference --force --verbose --relative --target-directory=icandidates $(DIR_CANDIDATES)/*/*/*.csv
-	for d in icandidates/*; do touch --no-dereference --reference="$$(readlink -f "$$d")" "$$d"; done
-
+	# Typically this is bad practice but these files are small
+	set -x ; for d in $(DIR_CANDIDATES)/*/*/*.csv; do e="$${d##*/}"; cp -p "$$d" "icandidates/$${e,,}"; done
 
 check:
 	echo $(INPUT_SNAPSHOTS)
