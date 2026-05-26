@@ -28,15 +28,25 @@ all: .flag.ncv .flag.snapshots .flag.candidates
 
 snapshots/%.sqlite3: $(DIR_SNAPSHOTS)/%.zip
 	mkdir -p $(@D)
-	loadit $@.tmp $< && mv $@.tmp $@
+	loadit $@.tmp $<
+	addview "$@.tmp"
+	addindex "$@.tmp"
+	mv $@.tmp $@
 
 ncv/%.sqlite3: $(DIR_NCV)/%.zip
 	mkdir -p $(@D)
-	loadit $@.tmp $< && mv $@.tmp $@
+	loadit $@.tmp $< 
+	addview "$@.tmp"
+	addindex "$@.tmp"
+	addprec "$@.tmp"
+	mv $@.tmp $@
 
 candidates/%.sqlite3: icandidates/%.csv
 	mkdir -p $(@D)
-	loadit $@.tmp $< && mv $@.tmp $@
+	loadit $@.tmp $<
+	addview "$@.tmp"
+	addindex "$@.tmp"
+	mv "$@.tmp" "$@"
 
 .flag.icandidates:
 	rm -rf icandidates
