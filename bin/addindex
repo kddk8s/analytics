@@ -4,8 +4,12 @@ set -x
 declare -A clause=(
 	[dist]='(precinct_desc, municipality_desc, ward_desc, cong_dist_abbrv, nc_senate_abbrv, nc_house_abbrv, county_commiss_desc)'
 	[mail]='(mail_addr1, mail_addr2, mail_addr3, mail_addr4, mail_city, mail_state, mail_zipcode)'
+	[municipality]='(municipality_desc, precinct_desc)'
 	[name_s]='(last_name, first_name, midl_name, name_sufx_cd)'
 	[name_v]='(last_name, first_name, middle_name, name_suffix_lbl)'
+	[name_f]='(first_name)'
+	[name_mv]='(middle_name)'
+	[name_ms]='(midl_name)'
 	# Cheaper to add the midl_name and name_suffix_lbl aliases to ncvoter
 	[ncid]='(ncid)'
 	[ncid_c]='(ncid, county_id, county_desc, voter_reg_num)'
@@ -36,6 +40,8 @@ AddIndex() {
 #			ncid
 			ncid_c
 			name_s
+			name_f
+			name_ms
 			residence_s
 			mail
 			dist
@@ -51,6 +57,8 @@ AddIndex() {
 #			ncid
 			ncid_c
 			name_v
+			name_f
+			name_mv
 			residence_v
 			pa # precinct_abbr
 			fn # first_name
@@ -62,6 +70,7 @@ AddIndex() {
 #			r7_v
 			mail
 			dist
+			municipality
 			)
 			;;
 		*candidate*) indices=(

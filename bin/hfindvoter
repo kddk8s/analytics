@@ -14,6 +14,7 @@ declare -A expansion=(
 	["gc"]=gender_code
 	["ln"]=last_name
 	["mn"]=middle_name
+	["mu"]=municipality_desc
 	["nh"]=nc_house_abbrv
 	["ns"]=nc_senate_abbrv
 	["nc"]=ncid
@@ -23,6 +24,7 @@ declare -A expansion=(
 	["ph"]=full_phone_number
 	["rc"]=res_city_desc
 	["rs"]=res_street_address
+	["sc"]=status_cd
 	["zc"]=zip_code
 	)
 Main() {
@@ -53,6 +55,7 @@ Main() {
 	, first_name
 	, middle_name
 	, last_name
+	, name_suffix_lbl
 	, birth_year
 	, birth_state
 	, full_phone_number
